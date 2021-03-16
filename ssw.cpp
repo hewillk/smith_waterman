@@ -72,9 +72,9 @@
   @param  x  integer to be rounded (in place)
   @discussion x will be modified.
  */
-#define kroundup32(x)                                                         \
-  (--(x), (x) |= (x) >> 1, (x) |= (x) >> 2, (x) |= (x) >> 4, (x) |= (x) >> 8, \
-   (x) |= (x) >> 16, ++(x))
+#define kroundup32(x)                                                                           \
+  (--(x), (x) |= (x) >> 1, (x) |= (x) >> 2, (x) |= (x) >> 4, (x) |= (x) >> 8, (x) |= (x) >> 16, \
+   ++(x))
 
 typedef struct {
   uint16_t score;
@@ -93,12 +93,10 @@ static std::vector<__m128i> qP_byte(
     const int8_t* read_num, const int8_t* mat, const int32_t readLen,
     const int32_t n, /* the edge length of the squre matrix mat */
     uint8_t bias) {
-  int32_t segLen =
-      (readLen + 15) /
-      16; /* Split the 128 bit register into 16 pieces.
-                                 Each piece is 8 bit. Split the read into 16
-             segments. Calculat 16 segments in parallel.
-                               */
+  int32_t segLen = (readLen + 15) / 16; /* Split the 128 bit register into 16 pieces.
+                                                               Each piece is 8 bit. Split the read
+                                           into 16 segments. Calculat 16 segments in parallel.
+                                                             */
   std::vector<__m128i> vProfile(n * segLen);
   int8_t* t = (int8_t*)vProfile.data();
   int32_t nt, i, j, segNum;
@@ -125,16 +123,14 @@ static std::vector<__m128i> qP_byte(
  */
 static alignment_end* sw_sse2_byte(
     const int8_t* ref,
-    int8_t ref_dir,  // 0: forward ref; 1: reverse ref
-    int32_t refLen, int32_t readLen,
-    const uint8_t weight_gapO, /* will be used as - */
-    const uint8_t weight_gapE, /* will be used as - */
-    const __m128i* vProfile,
-    uint8_t terminate, /* the best alignment score: used to terminate
-                                          the matrix calculation when locating
-                          the alignment beginning point. If this score
-                                          is set to 0, it will not be used */
-    uint8_t bias,      /* Shift 0 point to a positive value. */
+    int8_t ref_dir,                                             // 0: forward ref; 1: reverse ref
+    int32_t refLen, int32_t readLen, const uint8_t weight_gapO, /* will be used as - */
+    const uint8_t weight_gapE,                                  /* will be used as - */
+    const __m128i* vProfile, uint8_t terminate, /* the best alignment score: used to terminate
+                                                                   the matrix calculation when
+                                                   locating the alignment beginning point. If this
+                                                   score is set to 0, it will not be used */
+    uint8_t bias,                               /* Shift 0 point to a positive value. */
     int32_t maskLen) {
 #define max16(m, vm)                                  \
   (vm) = _mm_max_epu8((vm), _mm_srli_si128((vm), 8)); \
@@ -145,8 +141,8 @@ static alignment_end* sw_sse2_byte(
 
   uint8_t max = 0; /* the max alignment score */
   int32_t end_read = readLen - 1;
-  int32_t end_ref = -1; /* 0_based best alignment ending point; Initialized as
-                           isn't aligned -1. */
+  int32_t end_ref = -1;                 /* 0_based best alignment ending point; Initialized as
+                                           isn't aligned -1. */
   int32_t segLen = (readLen + 15) / 16; /* number of segment */
 
   /* array to record the largest score of each reference position */
@@ -174,10 +170,8 @@ static alignment_end* sw_sse2_byte(
   /* 16 byte bias vector */
   __m128i vBias = _mm_set1_epi8(bias);
 
-  __m128i vMaxScore =
-      vZero; /* Trace the highest score of the whole SW matrix. */
-  __m128i vMaxMark =
-      vZero; /* Trace the highest score till the previous column. */
+  __m128i vMaxScore = vZero; /* Trace the highest score of the whole SW matrix. */
+  __m128i vMaxMark = vZero;  /* Trace the highest score till the previous column. */
   __m128i vTemp;
   int32_t edge, begin = 0, end = refLen, step = 1;
 
@@ -189,18 +183,14 @@ static alignment_end* sw_sse2_byte(
   }
   for (i = begin; LIKELY(i != end); i += step) {
     int32_t cmp;
-    __m128i e,
-        vF = vZero,
-        vMaxColumn =
-            vZero; /* Initialize F value to 0.
-                   Any errors to vH values will be corrected in the Lazy_F loop.
-                 */
+    __m128i e, vF = vZero,
+               vMaxColumn = vZero; /* Initialize F value to 0.
+                                   Any errors to vH values will be corrected in the Lazy_F loop.
+                                 */
 
     __m128i vH = pvHStore[segLen - 1];
-    vH = _mm_slli_si128(vH,
-                        1); /* Shift the 128-bit value in vH left by 1 byte. */
-    const __m128i* vP =
-        vProfile + ref[i] * segLen; /* Right part of the vProfile */
+    vH = _mm_slli_si128(vH, 1); /* Shift the 128-bit value in vH left by 1 byte. */
+    const __m128i* vP = vProfile + ref[i] * segLen; /* Right part of the vProfile */
 
     /* Swap the 2 H buffers. */
     __m128i* pv = pvHLoad;
@@ -319,30 +309,28 @@ static alignment_end* sw_sse2_byte(
   bests[1].ref = 0;
   bests[1].read = 0;
 
-  /*
   edge = (end_ref - maskLen) > 0 ? (end_ref - maskLen) : 0;
-  for (i = 0; i < edge; i ++) {
-          if (maxColumn[i] > bests[1].score) {
-                  bests[1].score = maxColumn[i];
-                  bests[1].ref = i;
-          }
+  for (i = 0; i < edge; i++) {
+    if (maxColumn[i] > bests[1].score) {
+      bests[1].score = maxColumn[i];
+      bests[1].ref = i;
+    }
   }
   edge = (end_ref + maskLen) > refLen ? refLen : (end_ref + maskLen);
-  for (i = edge + 1; i < refLen; i ++) {
-          if (maxColumn[i] > bests[1].score) {
-                  bests[1].score = maxColumn[i];
-                  bests[1].ref = i;
-          }
+  for (i = edge + 1; i < refLen; i++) {
+    if (maxColumn[i] > bests[1].score) {
+      bests[1].score = maxColumn[i];
+      bests[1].ref = i;
+    }
   }
-  */
 
   free(maxColumn);
   free(end_read_column);
   return bests;
 }
 
-static std::vector<__m128i> qP_word(const int8_t* read_num, const int8_t* mat,
-                                    const int32_t readLen, const int32_t n) {
+static std::vector<__m128i> qP_word(
+    const int8_t* read_num, const int8_t* mat, const int32_t readLen, const int32_t n) {
   int32_t segLen = (readLen + 7) / 8;
   std::vector<__m128i> vProfile(n * segLen);
   int16_t* t = (int16_t*)vProfile.data();
@@ -365,10 +353,9 @@ static std::vector<__m128i> qP_word(const int8_t* read_num, const int8_t* mat,
 
 static alignment_end* sw_sse2_word(
     const int8_t* ref,
-    int8_t ref_dir,  // 0: forward ref; 1: reverse ref
-    int32_t refLen, int32_t readLen,
-    const uint8_t weight_gapO, /* will be used as - */
-    const uint8_t weight_gapE, /* will be used as - */
+    int8_t ref_dir,                                             // 0: forward ref; 1: reverse ref
+    int32_t refLen, int32_t readLen, const uint8_t weight_gapO, /* will be used as - */
+    const uint8_t weight_gapE,                                  /* will be used as - */
     const __m128i* vProfile, uint16_t terminate, int32_t maskLen) {
 #define max8(m, vm)                                    \
   (vm) = _mm_max_epi16((vm), _mm_srli_si128((vm), 8)); \
@@ -378,8 +365,8 @@ static alignment_end* sw_sse2_word(
 
   uint16_t max = 0; /* the max alignment score */
   int32_t end_read = readLen - 1;
-  int32_t end_ref = 0; /* 1_based best alignment ending point; Initialized as
-                          isn't aligned - 0. */
+  int32_t end_ref = 0;                /* 1_based best alignment ending point; Initialized as
+                                         isn't aligned - 0. */
   int32_t segLen = (readLen + 7) / 8; /* number of segment */
 
   /* array to record the largest score of each reference position */
@@ -404,10 +391,8 @@ static alignment_end* sw_sse2_word(
   /* 16 byte insertion extension vector */
   __m128i vGapE = _mm_set1_epi16(weight_gapE);
 
-  __m128i vMaxScore =
-      vZero; /* Trace the highest score of the whole SW matrix. */
-  __m128i vMaxMark =
-      vZero; /* Trace the highest score till the previous column. */
+  __m128i vMaxScore = vZero; /* Trace the highest score of the whole SW matrix. */
+  __m128i vMaxMark = vZero;  /* Trace the highest score till the previous column. */
   __m128i vTemp;
   int32_t edge, begin = 0, end = refLen, step = 1;
 
@@ -424,17 +409,14 @@ static alignment_end* sw_sse2_word(
                               corrected in the Lazy_F loop.
                                              */
     __m128i vH = pvHStore[segLen - 1];
-    vH = _mm_slli_si128(vH,
-                        2); /* Shift the 128-bit value in vH left by 2 byte. */
+    vH = _mm_slli_si128(vH, 2); /* Shift the 128-bit value in vH left by 2 byte. */
 
     /* Swap the 2 H buffers. */
     __m128i* pv = pvHLoad;
 
-    __m128i vMaxColumn =
-        vZero; /* vMaxColumn is used to record the max values of column i. */
+    __m128i vMaxColumn = vZero; /* vMaxColumn is used to record the max values of column i. */
 
-    const __m128i* vP =
-        vProfile + ref[i] * segLen; /* Right part of the vProfile */
+    const __m128i* vP = vProfile + ref[i] * segLen; /* Right part of the vProfile */
     pvHLoad = pvHStore;
     pvHStore = pv;
 
@@ -528,35 +510,32 @@ static alignment_end* sw_sse2_word(
   bests[1].ref = 0;
   bests[1].read = 0;
 
-  /*
   edge = (end_ref - maskLen) > 0 ? (end_ref - maskLen) : 0;
-  for (i = 0; i < edge; i ++) {
-          if (maxColumn[i] > bests[1].score) {
-                  bests[1].score = maxColumn[i];
-                  bests[1].ref = i;
-          }
+  for (i = 0; i < edge; i++) {
+    if (maxColumn[i] > bests[1].score) {
+      bests[1].score = maxColumn[i];
+      bests[1].ref = i;
+    }
   }
   edge = (end_ref + maskLen) > refLen ? refLen : (end_ref + maskLen);
-  for (i = edge; i < refLen; i ++) {
-          if (maxColumn[i] > bests[1].score) {
-                  bests[1].score = maxColumn[i];
-                  bests[1].ref = i;
-          }
+  for (i = edge; i < refLen; i++) {
+    if (maxColumn[i] > bests[1].score) {
+      bests[1].score = maxColumn[i];
+      bests[1].ref = i;
+    }
   }
-  */
 
   free(maxColumn);
   free(end_read_column);
   return bests;
 }
 
-static cigar* banded_sw(const int8_t* ref, const int8_t* read, int32_t refLen,
-                        int32_t readLen, int32_t score,
-                        const uint32_t weight_gapO, /* will be used as - */
-                        const uint32_t weight_gapE, /* will be used as - */
-                        int32_t band_width,
-                        const int8_t* mat, /* pointer to the weight matrix */
-                        int32_t n) {
+static cigar* banded_sw(
+    const int8_t* ref, const int8_t* read, int32_t refLen, int32_t readLen, int32_t score,
+    const uint32_t weight_gapO,            /* will be used as - */
+    const uint32_t weight_gapE,            /* will be used as - */
+    int32_t band_width, const int8_t* mat, /* pointer to the weight matrix */
+    int32_t n) {
   uint32_t *c = (uint32_t*)malloc(16 * sizeof(uint32_t)), *c1;
   int32_t i, j, e, f, temp1, temp2, s = 16, s1 = 8, l, max = 0;
   int64_t s2 = 1024;
@@ -627,11 +606,9 @@ static cigar* banded_sw(const int8_t* ref, const int8_t* read, int32_t refLen,
 
         if (h_c[u] > max) max = h_c[u];
 
-        if (temp1 <= temp2)
-          direction_line[dh] = 1;
+        if (temp1 <= temp2) direction_line[dh] = 1;
         else
-          direction_line[dh] =
-              e1 > f1 ? direction_line[de] : direction_line[df];
+          direction_line[dh] = e1 > f1 ? direction_line[de] : direction_line[df];
       }
       for (j = 1; j <= u; j++) h_b[j] = h_c[j];
     }
@@ -688,8 +665,7 @@ static cigar* banded_sw(const int8_t* ref, const int8_t* read, int32_t refLen,
         free(result);
         return 0;
     }
-    if (op == prev_op)
-      ++e;
+    if (op == prev_op) ++e;
     else {
       ++l;
       while (l >= s) {
@@ -743,8 +719,7 @@ static cigar* banded_sw(const int8_t* ref, const int8_t* read, int32_t refLen,
 }
 
 static int8_t* seq_reverse(
-    const int8_t* seq,
-    int32_t end) /* end is 0-based alignment ending position */
+    const int8_t* seq, int32_t end) /* end is 0-based alignment ending position */
 {
   int8_t* reverse = (int8_t*)calloc(end + 1, sizeof(int8_t));
   int32_t start = 0;
@@ -757,8 +732,9 @@ static int8_t* seq_reverse(
   return reverse;
 }
 
-s_profile ssw_init(const int8_t* read, const int32_t readLen, const int8_t* mat,
-                   const int32_t n, const int8_t score_size) {
+s_profile ssw_init(
+    const int8_t* read, const int32_t readLen, const int8_t* mat, const int32_t n,
+    const int8_t score_size) {
   s_profile p;
   p.bias = 0;
 
@@ -772,8 +748,7 @@ s_profile ssw_init(const int8_t* read, const int32_t readLen, const int8_t* mat,
     p.bias = bias;
     p.profile_byte = qP_byte(read, mat, readLen, n, bias);
   }
-  if (score_size == 1 || score_size == 2)
-    p.profile_word = qP_word(read, mat, readLen, n);
+  if (score_size == 1 || score_size == 2) p.profile_word = qP_word(read, mat, readLen, n);
   p.read = read;
   p.mat = mat;
   p.readLen = readLen;
@@ -782,15 +757,14 @@ s_profile ssw_init(const int8_t* read, const int32_t readLen, const int8_t* mat,
 }
 
 s_align* ssw_align(
-    const s_profile* prof, const int8_t* ref, int32_t refLen,
-    const uint8_t weight_gapO, const uint8_t weight_gapE,
-    const uint8_t
-        flag,  //  (from high to low) bit 5: return the best alignment beginning
-               //  position; 6: if (ref_end1 - ref_begin1 <= filterd) &&
-               //  (read_end1 - read_begin1 <= filterd), return cigar; 7: if max
-               //  score >= filters, return cigar; 8: always return cigar; if 6
-               //  & 7 are both setted, only return cigar when both filter
-               //  fulfilled
+    const s_profile* prof, const int8_t* ref, int32_t refLen, const uint8_t weight_gapO,
+    const uint8_t weight_gapE,
+    const uint8_t flag,  //  (from high to low) bit 5: return the best alignment beginning
+                         //  position; 6: if (ref_end1 - ref_begin1 <= filterd) &&
+                         //  (read_end1 - read_begin1 <= filterd), return cigar; 7: if max
+                         //  score >= filters, return cigar; 8: always return cigar; if 6
+                         //  & 7 are both setted, only return cigar when both filter
+                         //  fulfilled
     const uint16_t filters, const int32_t filterd, const int32_t maskLen) {
   alignment_end *bests = 0, *bests_reverse = 0;
   std::vector<__m128i> vP;
@@ -803,30 +777,34 @@ s_align* ssw_align(
   r->cigar = 0;
   r->cigarLen = 0;
   if (maskLen < 15) {
-    fprintf(stderr,
-            "When maskLen < 15, the function ssw_align doesn't return 2nd best "
-            "alignment information.\n");
+    fprintf(
+        stderr,
+        "When maskLen < 15, the function ssw_align doesn't return 2nd best "
+        "alignment information.\n");
   }
 
   // Find the alignment scores and ending positions
   if (prof->profile_byte.data()) {
-    bests = sw_sse2_byte(ref, 0, refLen, readLen, weight_gapO, weight_gapE,
-                         prof->profile_byte.data(), -1, prof->bias, maskLen);
+    bests = sw_sse2_byte(
+        ref, 0, refLen, readLen, weight_gapO, weight_gapE, prof->profile_byte.data(), -1,
+        prof->bias, maskLen);
     if (prof->profile_word.data() && bests[0].score == 255) {
       free(bests);
-      bests = sw_sse2_word(ref, 0, refLen, readLen, weight_gapO, weight_gapE,
-                           prof->profile_word.data(), -1, maskLen);
+      bests = sw_sse2_word(
+          ref, 0, refLen, readLen, weight_gapO, weight_gapE, prof->profile_word.data(), -1,
+          maskLen);
       word = 1;
     } else if (bests[0].score == 255) {
-      fprintf(stderr,
-              "Please set 2 to the score_size parameter of the function "
-              "ssw_init, otherwise the alignment results will be incorrect.\n");
+      fprintf(
+          stderr,
+          "Please set 2 to the score_size parameter of the function "
+          "ssw_init, otherwise the alignment results will be incorrect.\n");
       free(r);
       return NULL;
     }
   } else if (prof->profile_word.data()) {
-    bests = sw_sse2_word(ref, 0, refLen, readLen, weight_gapO, weight_gapE,
-                         prof->profile_word.data(), -1, maskLen);
+    bests = sw_sse2_word(
+        ref, 0, refLen, readLen, weight_gapO, weight_gapE, prof->profile_word.data(), -1, maskLen);
     word = 1;
   } else {
     fprintf(stderr, "Please call the function ssw_init before ssw_align.\n");
@@ -849,33 +827,32 @@ s_align* ssw_align(
   // Find the beginning position of the best alignment.
   read_reverse = seq_reverse(prof->read, r->read_end1);
   if (word == 0) {
-    vP =
-        qP_byte(read_reverse, prof->mat, r->read_end1 + 1, prof->n, prof->bias);
-    bests_reverse =
-        sw_sse2_byte(ref, 1, r->ref_end1 + 1, r->read_end1 + 1, weight_gapO,
-                     weight_gapE, vP.data(), r->score1, prof->bias, maskLen);
+    vP = qP_byte(read_reverse, prof->mat, r->read_end1 + 1, prof->n, prof->bias);
+    bests_reverse = sw_sse2_byte(
+        ref, 1, r->ref_end1 + 1, r->read_end1 + 1, weight_gapO, weight_gapE, vP.data(), r->score1,
+        prof->bias, maskLen);
   } else {
     vP = qP_word(read_reverse, prof->mat, r->read_end1 + 1, prof->n);
-    bests_reverse =
-        sw_sse2_word(ref, 1, r->ref_end1 + 1, r->read_end1 + 1, weight_gapO,
-                     weight_gapE, vP.data(), r->score1, maskLen);
+    bests_reverse = sw_sse2_word(
+        ref, 1, r->ref_end1 + 1, r->read_end1 + 1, weight_gapO, weight_gapE, vP.data(), r->score1,
+        maskLen);
   }
   free(read_reverse);
   r->ref_begin1 = bests_reverse[0].ref;
   r->read_begin1 = r->read_end1 - bests_reverse[0].read;
   free(bests_reverse);
   if ((7 & flag) == 0 || ((2 & flag) != 0 && r->score1 < filters) ||
-      ((4 & flag) != 0 && (r->ref_end1 - r->ref_begin1 > filterd ||
-                           r->read_end1 - r->read_begin1 > filterd)))
+      ((4 & flag) != 0 &&
+       (r->ref_end1 - r->ref_begin1 > filterd || r->read_end1 - r->read_begin1 > filterd)))
     goto end;
 
   // Generate cigar.
   refLen = r->ref_end1 - r->ref_begin1 + 1;
   readLen = r->read_end1 - r->read_begin1 + 1;
   band_width = abs(refLen - readLen) + 1;
-  path = banded_sw(ref + r->ref_begin1, prof->read + r->read_begin1, refLen,
-                   readLen, r->score1, weight_gapO, weight_gapE, band_width,
-                   prof->mat, prof->n);
+  path = banded_sw(
+      ref + r->ref_begin1, prof->read + r->read_begin1, refLen, readLen, r->score1, weight_gapO,
+      weight_gapE, band_width, prof->mat, prof->n);
   if (path == 0) {
     free(r);
     r = NULL;
