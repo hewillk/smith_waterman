@@ -27,11 +27,11 @@
 struct _profile {
   std::vector<__m128i> profile_byte;
   std::vector<__m128i> profile_word;
-  const int8_t* read;
-  const int8_t* mat;
-  int32_t readLen;
-  int32_t n;
-  uint8_t bias;
+  const int8_t* read{};
+  const int8_t* mat{};
+  int32_t readLen{};
+  int32_t n{};
+  uint8_t bias{};
 };
 typedef struct _profile s_profile;
 
@@ -92,8 +92,9 @@ typedef struct {
                         mat is the pointer to the array {2, -2, -2, -2, -2, 2,
    -2, -2, -2, -2, 2, -2, -2, -2, -2, 2}
 */
-s_profile ssw_init(const int8_t* read, const int32_t readLen, const int8_t* mat,
-                   const int32_t n, const int8_t score_size);
+s_profile ssw_init(
+    const int8_t* read, const int32_t readLen, const int8_t* mat, const int32_t n,
+    const int8_t score_size);
 
 // @function	ssw alignment.
 /*!	@function	Do Striped Smith-Waterman alignment.
@@ -142,10 +143,10 @@ s_profile ssw_init(const int8_t* read, const int32_t readLen, const int8_t* mat,
    only when both criteria are fulfilled. All returned positions are 0-based
    coordinate.
 */
-s_align* ssw_align(const s_profile* prof, const int8_t* ref, int32_t refLen,
-                   const uint8_t weight_gapO, const uint8_t weight_gapE,
-                   const uint8_t flag, const uint16_t filters,
-                   const int32_t filterd, const int32_t maskLen);
+s_align* ssw_align(
+    const s_profile* prof, const int8_t* ref, int32_t refLen, const uint8_t weight_gapO,
+    const uint8_t weight_gapE, const uint8_t flag, const uint16_t filters, const int32_t filterd,
+    const int32_t maskLen);
 
 /*!	@function	Release the memory allocated by function ssw_align.
         @param	a	pointer to the alignment result structure
@@ -162,24 +163,18 @@ void align_destroy(s_align* a);
 static inline uint32_t to_cigar_int(uint32_t length, char op_letter) {
   switch (op_letter) {
     case 'M': /* alignment match (can be a sequence match or mismatch */
-    default:
-      return length << BAM_CIGAR_SHIFT;
+    default: return length << BAM_CIGAR_SHIFT;
     case 'S': /* soft clipping (clipped sequences present in SEQ) */
       return (length << BAM_CIGAR_SHIFT) | (4u);
-    case 'D': /* deletion from the reference */
-      return (length << BAM_CIGAR_SHIFT) | (2u);
-    case 'I': /* insertion to the reference */
-      return (length << BAM_CIGAR_SHIFT) | (1u);
+    case 'D': /* deletion from the reference */ return (length << BAM_CIGAR_SHIFT) | (2u);
+    case 'I': /* insertion to the reference */ return (length << BAM_CIGAR_SHIFT) | (1u);
     case 'H': /* hard clipping (clipped sequences NOT present in SEQ) */
       return (length << BAM_CIGAR_SHIFT) | (5u);
-    case 'N': /* skipped region from the reference */
-      return (length << BAM_CIGAR_SHIFT) | (3u);
+    case 'N': /* skipped region from the reference */ return (length << BAM_CIGAR_SHIFT) | (3u);
     case 'P': /* padding (silent deletion from padded reference) */
       return (length << BAM_CIGAR_SHIFT) | (6u);
-    case '=': /* sequence match */
-      return (length << BAM_CIGAR_SHIFT) | (7u);
-    case 'X': /* sequence mismatch */
-      return (length << BAM_CIGAR_SHIFT) | (8u);
+    case '=': /* sequence match */ return (length << BAM_CIGAR_SHIFT) | (7u);
+    case 'X': /* sequence mismatch */ return (length << BAM_CIGAR_SHIFT) | (8u);
   }
   return (uint32_t)-1;  // This never happens
 }
@@ -202,8 +197,6 @@ static inline char cigar_int_to_op(uint32_t cigar_int) {
         @return			length of CIGAR operation
 */
 // uint32_t cigar_int_to_len (uint32_t cigar_int);
-static inline uint32_t cigar_int_to_len(uint32_t cigar_int) {
-  return cigar_int >> BAM_CIGAR_SHIFT;
-}
+static inline uint32_t cigar_int_to_len(uint32_t cigar_int) { return cigar_int >> BAM_CIGAR_SHIFT; }
 
 #endif  // SSW_H
