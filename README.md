@@ -17,7 +17,7 @@ int main() {
   const auto read = "1102111000031323330032232203332323"_is;
   const auto ref = "2131100321101000010313231313001322323213"_is;
   const auto prof = SWAligner::get_profile(read);
-  const auto [score, ref_beg, ref_end, read_beg, read_end, cigar] = SWAligner::align(prof, ref);
+  const auto [score, score2, ref_beg, ref_end, read_beg, read_end, ref_end2, cigar] = SWAligner::align(prof, ref);
   std::cout << "score: " << score << "\n";
   std::cout << "ref_beg: " << ref_beg << "\n";
   std::cout << "ref_end: " << ref_end << "\n";
