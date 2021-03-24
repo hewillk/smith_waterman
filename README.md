@@ -14,8 +14,8 @@
 int main() {
   using namespace biomodern;
   using namespace biomodern::utility;
-  const auto read = "1102111000031323330032232203332323"_is;
-  const auto ref = "2131100321101000010313231313001322323213"_is;
+  const auto read = 1102111000031323330032232203332323_s;
+  const auto ref  = 2131100321101000010313231313001322323213_s;
   const auto prof = SWAligner::get_profile(read);
   const auto [score, score2, ref_beg, ref_end, read_beg, read_end, ref_end2, cigar] = SWAligner::align(prof, ref);
   std::cout << "score: " << score << "\n";
